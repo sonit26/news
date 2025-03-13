@@ -49,4 +49,4 @@ def slack_movie_recommendation():
     return jsonify({"response_type": "in_channel", "text": f"You should watch: {recommendation}"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5001)
