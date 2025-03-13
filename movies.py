@@ -1,12 +1,18 @@
-import requests
+import re
 import random
+import logging
+import requests
 from flask import Flask, request, jsonify
+from textblob import TextBlob
+import dateparser
+from datetime import datetime
 
 API_KEY = "76cfa8fbd70d94bc4d81d7922c785b03"
 BASE_URL = "https://api.themoviedb.org/3"
 SLACK_VERIFICATION_TOKEN = "lLED5gubUYQnRnGvTea2cqBt"
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 GENRE_MAP = {
     "Action": 28, "Comedy": 35, "Drama": 18,
@@ -23,37 +29,88 @@ OCCASIONS = {
 
 USER_SESSIONS = {}
 
+# Use TextBlob for NLP
+def extract_preferences(text):
+    blob = TextBlob(text)
+
+    # Extract possible genres from the text
+    genres = [g for g in GENRE_MAP.keys() if g.lower() in text.lower()]
+
+    # Extract occasion
+    occasion = None
+    for occ in OCCASIONS:
+        if occ.lower() in text.lower():
+            occasion = occ
+            break
+
+    # Try to parse the year or decade with dateparser
+    detected_dates = []
+
+    # Check for decade-based keywords like "2000s", "90s", etc.
+    if "2000s" in text:
+        detected_dates.append("2000-2009")
+    elif "90s" in text:
+        detected_dates.append("1990-1999")
+    elif "80s" in text:
+        detected_dates.append("1980-1989")
+    else:
+        parsed_date = dateparser.parse(text)
+        if parsed_date:
+            detected_dates.append(str(parsed_date.year))
+        
+        # Explicitly capture any specific year mentioned in the text (1940 onwards)
+        year_match = re.search(r"\b(19[4-9]\d|20\d{2})\b", text)  # Captures years like 1940, 2024, etc.
+        if year_match:
+            detected_dates.append(year_match.group(1))
+
+    # Set the year range if detected
+    if detected_dates:
+        year_range = detected_dates[0]  # Use the first detected range or year
+    else:
+        year_range = None
+
+    logging.debug(f"Detected preferences: genres: {genres}, occasion: {occasion}, year_range: {year_range}")
+    
+    return {
+        "occasion": occasion,
+        "genres": genres,
+        "year_range": year_range
+    }
+
 def get_movies_by_genres_and_date(genres, year_filter):
-    """Fetches movies from TMDb based on genres and release year."""
+    logging.debug(f"Fetching movies for genres: {genres} and year filter: {year_filter}")
     genre_ids = [str(GENRE_MAP[g]) for g in genres if g in GENRE_MAP]
     if not genre_ids:
         return None
     
     url = f"{BASE_URL}/discover/movie?api_key={API_KEY}&with_genres={','.join(genre_ids)}"
     
-    if year_filter == "recent":
-        url += "&primary_release_year=2023"
-    elif year_filter == "last 10 years":
-        url += "&primary_release_date.gte=2013-01-01"
-    elif year_filter.isdigit():
+    if year_filter:
         url += f"&primary_release_year={year_filter}"
     
+    logging.debug(f"Fetching movies from URL: {url}")
     response = requests.get(url)
     
     if response.status_code == 200:
         movies = response.json().get("results", [])
+        logging.debug(f"Movies fetched: {movies}")
         return [movie["title"] for movie in movies]
     else:
+        logging.error(f"Failed to fetch movies, status code: {response.status_code}")
         return None
 
-def recommend_movie(user_id):
-    """Recommends a random movie based on stored user selections."""
-    user_data = USER_SESSIONS.get(user_id, {})
-    occasion = user_data.get("occasion")
-    genres = user_data.get("genres", [])
-    year_filter = user_data.get("year")
+def recommend_movie(user_id, text):
+    preferences = extract_preferences(text)
+    logging.debug(f"Extracted preferences: {preferences}")
     
-    suggested_genres = OCCASIONS.get(occasion, genres)
+    occasion = preferences.get("occasion")
+    genres = preferences.get("genres", [])
+    year_filter = preferences.get("year_range")
+    
+    # If no genres are selected from the input text, use the occasion-based genres
+    suggested_genres = OCCASIONS.get(occasion, []) or genres
+    logging.debug(f"Final genre selection: {suggested_genres}")
+    
     movies = get_movies_by_genres_and_date(suggested_genres, year_filter)
     
     if movies:
@@ -63,47 +120,23 @@ def recommend_movie(user_id):
 
 @app.route("/slack/movies", methods=["POST"])
 def slack_movie_recommendation():
-    """Handles Slack slash command /movies in a step-by-step conversational way."""
     data = request.form
     user_id = data.get("user_id")
     text = data.get("text", "").strip()
+    logging.debug(f"Received input: {text} from user {user_id}")
     
     if data.get("token") != SLACK_VERIFICATION_TOKEN:
         return jsonify({"text": "Unauthorized request."}), 403
     
+    # Store session data
     if user_id not in USER_SESSIONS:
         USER_SESSIONS[user_id] = {}
+
+    # Extract movie preferences and generate recommendation
+    recommendation = recommend_movie(user_id, text)
+    logging.debug(f"Movie recommendation: {recommendation}")
     
-    user_data = USER_SESSIONS[user_id]
-    
-    if "occasion" not in user_data:
-        user_data["occasion"] = text if text in OCCASIONS else None
-        return jsonify({
-            "response_type": "ephemeral",
-            "text": f"Great! Now, choose your preferred genres (comma-separated): {', '.join(GENRE_MAP.keys())}"
-        })
-    
-    if "genres" not in user_data:
-        selected_genres = [g.strip() for g in text.split(",") if g.strip() in GENRE_MAP]
-        if selected_genres:
-            user_data["genres"] = selected_genres
-            return jsonify({
-                "response_type": "ephemeral",
-                "text": "Now, are you looking to watch a modern flick, or something older: recent, last 10 years, or a specific year (e.g., 2015)."
-            })
-        else:
-            return jsonify({
-                "response_type": "ephemeral",
-                "text": f"Invalid genres. Choose from: {', '.join(GENRE_MAP.keys())}"
-            })
-    
-    if "year" not in user_data:
-        user_data["year"] = text
-        recommendation = recommend_movie(user_id)
-        USER_SESSIONS.pop(user_id, None)  # Clear session after completion
-        return jsonify({"response_type": "in_channel", "text": f"You should watch: {recommendation}"})
-    
-    return jsonify({"response_type": "ephemeral", "text": "Something went wrong. Please start over with /movies."})
+    return jsonify({"response_type": "in_channel", "text": f"You should watch: {recommendation}"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)

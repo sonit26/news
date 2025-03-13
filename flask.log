@@ -1,0 +1,23 @@
+2025-03-13 22:52:56,407 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.29.185:5001
+2025-03-13 22:52:56,407 - INFO - [33mPress CTRL+C to quit[0m
+2025-03-13 22:53:20,675 - DEBUG - Received request: ImmutableMultiDict([('token', 'lLED5gubUYQnRnGvTea2cqBt'), ('team_id', 'T0425RDMQ3C'), ('team_domain', 'fwhiring'), ('channel_id', 'D0425QET1NX'), ('channel_name', 'directmessage'), ('user_id', 'U041RB12MQX'), ('user_name', 'sonit'), ('command', '/movies'), ('text', 'action'), ('api_app_id', 'A08HMKPJ3NX'), ('is_enterprise_install', 'false'), ('response_url', 'https://hooks.slack.com/commands/T0425RDMQ3C/8592369885814/6A4mknsMzGCVRmWWiO4rzfN1'), ('trigger_id', '8592370010038.4073863738114.8c94e86d07ecce00085b962d2d7480a5')])
+2025-03-13 22:53:20,675 - DEBUG - User U041RB12MQX selected occasion: action
+2025-03-13 22:53:20,676 - INFO - 127.0.0.1 - - [13/Mar/2025 22:53:20] "POST /slack/movies HTTP/1.1" 200 -
+2025-03-13 22:56:06,769 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.29.185:5001
+2025-03-13 22:56:06,769 - INFO - [33mPress CTRL+C to quit[0m
+2025-03-13 22:56:26,376 - DEBUG - Received request: ImmutableMultiDict([('token', 'lLED5gubUYQnRnGvTea2cqBt'), ('team_id', 'T0425RDMQ3C'), ('team_domain', 'fwhiring'), ('channel_id', 'D0425QET1NX'), ('channel_name', 'directmessage'), ('user_id', 'U041RB12MQX'), ('user_name', 'sonit'), ('command', '/movies'), ('text', 'action'), ('api_app_id', 'A08HMKPJ3NX'), ('is_enterprise_install', 'false'), ('response_url', 'https://hooks.slack.com/commands/T0425RDMQ3C/8592387708918/SbrjSchf0lcyneJAKmxkUuAO'), ('trigger_id', '8592387726118.4073863738114.09ee18ac9f53f6af1f5aee18bd12ead8')])
+2025-03-13 22:56:26,377 - DEBUG - User U041RB12MQX selected genres: ['Action']
+2025-03-13 22:56:26,378 - INFO - 127.0.0.1 - - [13/Mar/2025 22:56:26] "POST /slack/movies HTTP/1.1" 200 -
+2025-03-13 22:58:05,285 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.29.185:5001
+2025-03-13 22:58:05,285 - INFO - [33mPress CTRL+C to quit[0m
+2025-03-13 22:58:17,614 - DEBUG - Received request: ImmutableMultiDict([('token', 'lLED5gubUYQnRnGvTea2cqBt'), ('team_id', 'T0425RDMQ3C'), ('team_domain', 'fwhiring'), ('channel_id', 'D0425QET1NX'), ('channel_name', 'directmessage'), ('user_id', 'U041RB12MQX'), ('user_name', 'sonit'), ('command', '/movies'), ('text', 'action'), ('api_app_id', 'A08HMKPJ3NX'), ('is_enterprise_install', 'false'), ('response_url', 'https://hooks.slack.com/commands/T0425RDMQ3C/8601019529587/zMek8FkECN9PN1cYVwmBG3fM'), ('trigger_id', '8601019529699.4073863738114.acfa0c78b2261e37995cb7bdd984df5f')])
+2025-03-13 22:58:17,616 - INFO - 127.0.0.1 - - [13/Mar/2025 22:58:17] "POST /slack/movies HTTP/1.1" 200 -
