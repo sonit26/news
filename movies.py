@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify
 
 API_KEY = "76cfa8fbd70d94bc4d81d7922c785b03"
 BASE_URL = "https://api.themoviedb.org/3"
-SLACK_VERIFICATION_TOKEN = "your_slack_verification_token"
+SLACK_VERIFICATION_TOKEN = "lLED5gubUYQnRnGvTea2cqBt"
 
 app = Flask(__name__)
 
