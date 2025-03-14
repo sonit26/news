@@ -2,6 +2,7 @@ import re
 import random
 import logging
 import requests
+import urllib.parse
 from flask import Flask, request, jsonify
 from textblob import TextBlob
 import dateparser
@@ -10,6 +11,8 @@ from datetime import datetime
 API_KEY = "76cfa8fbd70d94bc4d81d7922c785b03"
 BASE_URL = "https://api.themoviedb.org/3"
 SLACK_VERIFICATION_TOKEN = "6gm7fou9ko96frmC03BGyNDv"
+JUSTWATCH_BASE_URL = "https://www.justwatch.com/in/movie/"
+
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -85,7 +88,10 @@ def get_movies_by_genres_and_date(genres, year_filter):
     
     url = f"{BASE_URL}/discover/movie?api_key={API_KEY}&with_genres={','.join(genre_ids)}"
     
-    if year_filter:
+    if year_filter and "-" in year_filter:
+        start_year, end_year = year_filter.split("-")
+        url += f"&primary_release_date.gte={start_year}-01-01&primary_release_date.lte={end_year}-12-31"
+    elif year_filter:
         url += f"&primary_release_year={year_filter}"
     
     logging.debug(f"Fetching movies from URL: {url}")
@@ -94,7 +100,8 @@ def get_movies_by_genres_and_date(genres, year_filter):
     if response.status_code == 200:
         movies = response.json().get("results", [])
         logging.debug(f"Movies fetched: {movies}")
-        return [movie["title"] for movie in movies]
+        return [f"{movie['title']} ({movie['release_date'][:4]})" for movie in movies if 'release_date' in movie and movie['release_date']]
+
     else:
         logging.error(f"Failed to fetch movies, status code: {response.status_code}")
         return None
@@ -107,14 +114,30 @@ def recommend_movie(user_id, text):
     genres = preferences.get("genres", [])
     year_filter = preferences.get("year_range")
     
-    # If no genres are selected from the input text, use the occasion-based genres
+    # Use occasion-based genres if no genres were provided explicitly
     suggested_genres = OCCASIONS.get(occasion, []) or genres
     logging.debug(f"Final genre selection: {suggested_genres}")
     
     movies = get_movies_by_genres_and_date(suggested_genres, year_filter)
     
     if movies:
-        return random.choice(movies)
+        movie_choice = random.choice(movies)  # Already a formatted string like "Movie Title (2024)"
+        
+        # Extract title and year from the formatted string
+        match = re.match(r"(.+?) \((\d{4})\)", movie_choice)
+        if match:
+            movie_title, movie_year = match.groups()
+        else:
+            movie_title, movie_year = movie_choice, ""
+
+        # Clean up title for JustWatch link
+        title_cleaned = re.sub(r"[:']", "", movie_title)  # Remove colons and apostrophes
+        title_cleaned = title_cleaned.lower().replace(" ", "-")  # Convert spaces to hyphens
+
+        # Generate the JustWatch link
+        justwatch_link = f"{JUSTWATCH_BASE_URL}{title_cleaned}"
+
+        return f"<{justwatch_link}|{movie_title} ({movie_year})>"
     else:
         return "Could not fetch movies. Try again later."
 
